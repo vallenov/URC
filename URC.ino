@@ -51,8 +51,14 @@ void loop() {
       Serial.println("p");
       lcd.menu_action(0, 0, true);
     }
-    lcd.battery++;
-    lcd.ping++;
+    else if (s == 91) {
+      Serial.println("[");
+      lcd.menu_action(-1, 0, true);
+    }
+    else if (s == 93) {
+      Serial.println("]");
+      lcd.menu_action(1, 0, true);
+    }
   }
   if (millis() - ::timer > 500) {
     //lcd.menu_action(-1);
