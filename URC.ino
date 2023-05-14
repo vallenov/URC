@@ -47,6 +47,10 @@ void loop() {
       Serial.println("<");
       lcd.menu_action(0, -1);
     }
+    else if (s == 112) {
+      Serial.println("p");
+      lcd.menu_action(0, 0, true);
+    }
     lcd.battery++;
     lcd.ping++;
   }
