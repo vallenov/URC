@@ -51,27 +51,6 @@ byte ping_raw_pic[] = {
   B00000,
 };
 
-byte ethernity_raw_pic[] = {
-  B00000,
-  B00000,
-  B01010,
-  B10101,
-  B01010,
-  B00000,
-  B00000,
-  B00000,
-};
-
-struct MenuItemValue {
-  public:
-    uint8_t type;
-    uint8_t cnt;
-    char state[2][3];
-    uint8_t value;
-    uint8_t up_value;
-    uint8_t down_value;
-};
-
 class LCD {
   private:
     uint8_t cnt = 0; //test
@@ -79,24 +58,14 @@ class LCD {
     int8_t current_choise_position = 0;
     int8_t current_menu_level = 0; 
     uint8_t menu_len = 3;
-    boolean choice = false;
-    boolean backlight = false;
+    boolean backlight = true;
+    uint8_t timeout = 5;
     char menu[3][20] = {"Settings", "Modes", "Guide"}; // list of items
     char menu2[3][3][20] = {
       {"Backlight", "Timeout", "Sett3"},
       {"Mod1", "Mod2", "Mod3"},
       {"G1", "G2", "G3"}
     };
-
-    MenuItemValue menuValues[1][3] = {
-      {{1, 2, {"ON", "OFF"}, 0, 0, 0}, {1, 2, {"1", "2"}, 0, 0, 0}, {1, 2, {"ON", "OFF"}, 0, 0, 0}},
-    };
-
-//    char menuValues[3][3][3][10] = {
-//      {{"ON", "OFF", "ON"}, {"-1", "5", "1"}, {"ON", "OFF", "ON"}},
-//      {{"ON", "OFF", "ON"}, {"-1", "5", "1"}, {"ON", "OFF", "ON"}},
-//      {{"ON", "OFF", "ON"}, {"-1", "5", "1"}, {"ON", "OFF", "ON"}}
-//    };
     
     LiquidCrystal_I2C lcd = LiquidCrystal_I2C(SCREEN_ADDRESS, SCREEN_WIDTH, SCREEN_HEIGHT);
 
@@ -114,7 +83,6 @@ class LCD {
     lcd.createChar(1, mods_raw_pic);
     lcd.createChar(2, guide_raw_pic);
     lcd.createChar(3, ping_raw_pic);
-    lcd.createChar(4, ethernity_raw_pic);
     lcd.backlight();
   }
 
@@ -153,11 +121,38 @@ class LCD {
     if (current_menu_level == 1) {
       lcd.print(menu2[current_menu_position[current_menu_level-1]][current_menu_position[current_menu_level]]);
       lcd.setCursor(13, 1);
-      if (menuValues[0][current_menu_position[1]].type == 1) {
-        lcd.print(menuValues[0][current_menu_position[1]].state[current_choise_position]);
+      if (current_menu_position[0] == 0) {
+        if (current_menu_position[1] == 0) {
+          lcd.print(backlight ? "ON" : "OFF");
+        }
+        else if (current_menu_position[1] == 1) {
+          lcd.print(timeout);
+        }
+        else if (current_menu_position[1] == 2) {
+          lcd.print(backlight ? "ON" : "OFF");
+        }
       }
-      else if (menuValues[0][current_menu_position[1]].type == 2) {
-        lcd.print(menuValues[0][current_menu_position[1]].value);
+      else if (current_menu_position[0] == 1){
+        if (current_menu_position[1] == 0) {
+          lcd.print(backlight ? "ON" : "OFF");
+        }
+        else if (current_menu_position[1] == 1) {
+          lcd.print(backlight ? "ON" : "OFF");
+        }
+        else if (current_menu_position[1] == 2) {
+          lcd.print(backlight ? "ON" : "OFF");
+        }
+      }
+      else if (current_menu_position[0] == 2){
+        if (current_menu_position[1] == 0) {
+          lcd.print(backlight ? "ON" : "OFF");
+        }
+        else if (current_menu_position[1] == 1) {
+          lcd.print(backlight ? "ON" : "OFF");
+        }
+        else if (current_menu_position[1] == 2) {
+          lcd.print(backlight ? "ON" : "OFF");
+        }
       }
     }
   }
@@ -169,8 +164,8 @@ class LCD {
     show_menu(); 
   }
 
-  void menu_action(int8_t act = 0, int8_t change_level = 0, bool press = false) {
-    if (change_level != 0) {
+  void menu_action(int8_t act = 0, int8_t change_level = 0, bool pressX = false) {
+    if (!pressX and change_level != 0) {
       current_menu_level = current_menu_level + change_level;
       if (current_menu_level < 0) {
         current_menu_level = 0;
@@ -178,32 +173,64 @@ class LCD {
       if (current_menu_level > 1) {
         current_menu_level = 1;
       }
-      current_menu_position[1] = 0;
-      choice = false;
     }
-    else if (act != 0) {
-      if (!choice){
-        current_menu_position[current_menu_level] = current_menu_position[current_menu_level] + act;
-        if (current_menu_position[current_menu_level] > 2) {
-          current_menu_position[current_menu_level] = 0;
-        }
-        if (current_menu_position[current_menu_level] < 0) {
-          current_menu_position[current_menu_level] = menu_len-1;
-        }
+    else if (!pressX and act != 0) {
+      current_menu_position[current_menu_level] = current_menu_position[current_menu_level] + act;
+      if (current_menu_position[current_menu_level] > 2) {
+        current_menu_position[current_menu_level] = 0;
       }
-      else {
-        current_choise_position = current_choise_position + act;
-        if (current_choise_position > 1) {
-          current_choise_position = 0;
-        }
-        if (current_choise_position < 0) {
-          current_choise_position = 1;
-        }
+      if (current_menu_position[current_menu_level] < 0) {
+        current_menu_position[current_menu_level] = menu_len-1;
       }
     }
-    else if (press and (current_menu_level == 1)) {
-      current_choise_position = 0;
-      choice = true;
+    else if (pressX and (current_menu_level >= 1)) {
+      if (current_menu_level < 1) {
+        return;
+      }
+      if (current_menu_position[0] == 0) {
+        if (current_menu_position[1] == 0) {
+          switch_backlight();
+        }
+        else if (current_menu_position[1] == 1) {
+          timeout = timeout + act;
+        }
+        else if (current_menu_position[1] == 2) {
+          switch_backlight();
+        }
+      }
+      else if (current_menu_position[0] == 1){
+        if (current_menu_position[1] == 0) {
+          switch_backlight();
+        }
+        else if (current_menu_position[1] == 1) {
+          switch_backlight();
+        }
+        else if (current_menu_position[1] == 2) {
+          switch_backlight();
+        }
+      }
+      else if (current_menu_position[0] == 2){
+        if (current_menu_position[1] == 0) {
+          switch_backlight();
+        }
+        else if (current_menu_position[1] == 1) {
+          switch_backlight();
+        }
+        else if (current_menu_position[1] == 2) {
+          switch_backlight();
+        }
+      }
+    }
+  }
+
+  void switch_backlight() {
+    if (backlight) {
+      lcd.noBacklight();
+      backlight = false;
+    }
+    else {
+      lcd.backlight();
+      backlight = true;
     }
   }
 };
