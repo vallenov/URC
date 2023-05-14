@@ -1,6 +1,7 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include <Arduino.h>
+#include <string.h>
 
 #define SCREEN_WIDTH 16
 #define SCREEN_HEIGHT 2
@@ -61,18 +62,42 @@ byte ethernity_raw_pic[] = {
   B00000,
 };
 
+struct MenuItemValue {
+  public:
+    uint8_t type;
+    uint8_t cnt;
+    char state[2][3];
+    uint8_t value;
+    uint8_t up_value;
+    uint8_t down_value;
+};
+
 class LCD {
   private:
     uint8_t cnt = 0; //test
     int8_t current_menu_position[2] = {0, 0};
+    int8_t current_choise_position = 0;
     int8_t current_menu_level = 0; 
     uint8_t menu_len = 3;
+    boolean choice = false;
+    boolean backlight = false;
     char menu[3][20] = {"Settings", "Modes", "Guide"}; // list of items
     char menu2[3][3][20] = {
-      {"Sett1", "Sett2", "Sett3"},
+      {"Backlight", "Timeout", "Sett3"},
       {"Mod1", "Mod2", "Mod3"},
       {"G1", "G2", "G3"}
     };
+
+    MenuItemValue menuValues[1][3] = {
+      {{1, 2, {"ON", "OFF"}, 0, 0, 0}, {1, 2, {"1", "2"}, 0, 0, 0}, {1, 2, {"ON", "OFF"}, 0, 0, 0}},
+    };
+
+//    char menuValues[3][3][3][10] = {
+//      {{"ON", "OFF", "ON"}, {"-1", "5", "1"}, {"ON", "OFF", "ON"}},
+//      {{"ON", "OFF", "ON"}, {"-1", "5", "1"}, {"ON", "OFF", "ON"}},
+//      {{"ON", "OFF", "ON"}, {"-1", "5", "1"}, {"ON", "OFF", "ON"}}
+//    };
+    
     LiquidCrystal_I2C lcd = LiquidCrystal_I2C(SCREEN_ADDRESS, SCREEN_WIDTH, SCREEN_HEIGHT);
 
     uint8_t ping_pic = 3;
@@ -123,10 +148,17 @@ class LCD {
     lcd.setCursor(current_menu_level, 1);        
     lcd.write(current_menu_position[0]);
     if (current_menu_level == 0) {
-      lcd.print(menu[current_menu_position[current_menu_level]]);
+      lcd.print(menu[current_menu_position[current_menu_level]]); 
     }
     if (current_menu_level == 1) {
       lcd.print(menu2[current_menu_position[current_menu_level-1]][current_menu_position[current_menu_level]]);
+      lcd.setCursor(13, 1);
+      if (menuValues[0][current_menu_position[1]].type == 1) {
+        lcd.print(menuValues[0][current_menu_position[1]].state[current_choise_position]);
+      }
+      else if (menuValues[0][current_menu_position[1]].type == 2) {
+        lcd.print(menuValues[0][current_menu_position[1]].value);
+      }
     }
   }
 
@@ -137,7 +169,7 @@ class LCD {
     show_menu(); 
   }
 
-  void menu_action(int8_t act = 0, int8_t change_level = 0) {
+  void menu_action(int8_t act = 0, int8_t change_level = 0, bool press = false) {
     if (change_level != 0) {
       current_menu_level = current_menu_level + change_level;
       if (current_menu_level < 0) {
@@ -147,15 +179,31 @@ class LCD {
         current_menu_level = 1;
       }
       current_menu_position[1] = 0;
+      choice = false;
     }
     else if (act != 0) {
-      current_menu_position[current_menu_level] = current_menu_position[current_menu_level] + act;
-      if (current_menu_position[current_menu_level] > 2) {
-        current_menu_position[current_menu_level] = 0;
+      if (!choice){
+        current_menu_position[current_menu_level] = current_menu_position[current_menu_level] + act;
+        if (current_menu_position[current_menu_level] > 2) {
+          current_menu_position[current_menu_level] = 0;
+        }
+        if (current_menu_position[current_menu_level] < 0) {
+          current_menu_position[current_menu_level] = menu_len-1;
+        }
       }
-      if (current_menu_position[current_menu_level] < 0) {
-        current_menu_position[current_menu_level] = menu_len-1;
+      else {
+        current_choise_position = current_choise_position + act;
+        if (current_choise_position > 1) {
+          current_choise_position = 0;
+        }
+        if (current_choise_position < 0) {
+          current_choise_position = 1;
+        }
       }
+    }
+    else if (press and (current_menu_level == 1)) {
+      current_choise_position = 0;
+      choice = true;
     }
   }
 };
