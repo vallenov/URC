@@ -1,7 +1,10 @@
 int button_data[15];
 bool press[15] = {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false};
+// Что бы не загуружать процессор при каждой итерации
+uint16_t sq_list[15] = {
+      1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384
+    };
 int right_ox, right_oy, left_ox, left_oy;
-int left_l1, left_l2, right_l1, right_l2;
 
 /*
  0 - UP
@@ -34,23 +37,25 @@ void setup() {
   pinMode(A6, INPUT);
   pinMode(A7, INPUT);
   Serial.begin(9600);
+  Serial.println("Start");
 }
 
 void loop() {
     // Читаем инфу с цифровфх пинов
     for (uint8_t current_pin = 0; current_pin <= 10; current_pin++) {
       button_data[current_pin] = !digitalRead(current_pin+2);
+      Serial.print(button_data[current_pin]);
       if (button_data[current_pin] == HIGH) {
         press[current_pin] = true;
-        Serial.print("Button ");
-        Serial.print(current_pin);
-        Serial.println(" pressed!");
+//        Serial.print("Button ");
+//        Serial.print(current_pin);
+//        Serial.println(" pressed!");
       }
       if (press[current_pin] and button_data[current_pin] == LOW) {
         press[current_pin] = false;
-        Serial.print("Button ");
-        Serial.print(current_pin);
-        Serial.println(" released!");
+//        Serial.print("Button ");
+//        Serial.print(current_pin);
+//        Serial.println(" released!");
       }
     }
 
@@ -58,6 +63,7 @@ void loop() {
     uint8_t abutton_data[4] = {A0, A1, A2, A3};
     for (uint8_t current_pin = 0; current_pin <= 3; current_pin++) {
       button_data[current_pin+11] = !analogRead(abutton_data[current_pin]);
+      Serial.print(button_data[current_pin+11]);
       if (button_data[current_pin+11] == HIGH) {
         press[current_pin + 11] = true;
         Serial.print("Button ");
@@ -77,4 +83,30 @@ void loop() {
     right_oy = analogRead(A4);
     left_ox = analogRead(A7);
     left_oy = analogRead(A6);
+
+    uint16_t buttons_state_result = 0;
+    for (int8_t i = 0; i <= 14; i++) {
+      if (press[i]) {
+        buttons_state_result = buttons_state_result + sq_list[i];
+      }
+    }
+    Serial.print("    ");
+    Serial.print(buttons_state_result);
+    
+    bool res[15] = {false, false, false, false, false, false, false, false, false, false, false, false, false, false};;
+    for (int8_t i = 14; i >= 0; i--) {
+      if (buttons_state_result > sq_list[i]) {
+        res[i] = true;
+        buttons_state_result = buttons_state_result - sq_list[i];
+      }
+      else if (buttons_state_result == sq_list[i]) {
+        res[i] = true;
+        break;
+      }
+    }
+    Serial.print("    ");
+    for (int8_t i = 0; i <= 14; i++) {
+      Serial.print(res[i]?"1":"0");
+    }
+    Serial.println();
 }
