@@ -2,9 +2,6 @@
 #include <Arduino.h>
 #include <string.h>
 
-#define SCREEN_WIDTH 128 
-#define SCREEN_HEIGHT 64 
-
 extern uint8_t SmallFont[];
 extern uint8_t TinyFont[];
 
@@ -32,6 +29,7 @@ class myOLED {
   public:
     uint8_t battery = 56; // battery level
     uint16_t ping = 999; //ping
+    uint8_t rc_chanel = 67;
     myOLED(){}
 
   void init() {
