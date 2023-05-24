@@ -11,13 +11,30 @@
 
 #define VERSION "0.0.1"
 
+/*
+ Соответствие номеров кнопкам
+ 
+ 0 - UP
+ 1 - RIGHT
+ 2 - DOWN
+ 3 - LEFT
+ 4 - SELECT
+ 5 - ANALOG
+ 6 - START
+ 7 - 1
+ 8 - 2
+ 9 - 3
+ 10 - 4
+ 11 - RIGHT L2
+ 12 - RIGHT L1
+ 13 - LEFT L2
+ 14 - LEFT L1
+ */
+
 long timer = 0;
 byte address[][6] = {"1Node", "2Node", "3Node", "4Node", "5Node", "6Node"}; // возможные номера труб
 
 uint8_t old_rc_chanel; // Текущий канал передачи данных
-byte transmit_data[3]; // массив пересылаемых данных
-
-int16_t buttons_state[2] = {0, 0};
 
 myOLED myoled;
 
@@ -48,69 +65,107 @@ void check_actual_rc_channel() {
   }
 }
 
-void transmit_pac() {
-  Serial.print("Size if t data: ");
-  Serial.println(sizeof(transmit_data));
-  // отправка пакета 
-  if (radio.write(&transmit_data, sizeof(transmit_data))) {
-    Serial.print("Transmit: ");
-    for (uint8_t i : transmit_data) {
-      Serial.print(i);
-      Serial.print(" ");
+void get_data(char *content) {
+  mySerial.write(" ");
+  uint8_t sz = 0;
+  //char content[28] = {};
+  if (mySerial.available()) {
+    uint8_t cnt = 0;
+    bool receiving = false;
+    while (mySerial.available()) {
+      if (mySerial.peek() == 36) {
+        cnt = 0;
+        receiving = true;
+        mySerial.read();
+      }
+      if (receiving) {
+        if (mySerial.peek() == 94) {
+          receiving = false;
+          break;
+        }
+        Serial.write(" ");
+        content[cnt] = mySerial.read();
+        cnt++;
+      }
+      else {
+        Serial.write(" ");
+        mySerial.read();
+      }
     }
-    Serial.println();
+    if (receiving) {
+      return {"-1"};
+    }
+//    Serial.println();
+//    Serial.println(content);
   }
+}
+
+void transmit_pac() {
+  char raw_button_data[28] = {};
+  get_data(raw_button_data);
+  Serial.println();
+  Serial.println(raw_button_data);
+  // отправка пакета в эфир
+//  if (radio.write(&transmit_data, sizeof(transmit_data))) {
+//    Serial.print("Transmit: ");
+//    for (uint16_t i : transmit_data) {
+//      Serial.print(i);
+//      Serial.print(" ");
+//    }
+//    Serial.println();
+//  }
 }
 
 void setup() {
   Serial.begin(9600);
+  mySerial.begin(9600);
   myoled.init();
   radioSetup();
 }
 
 void loop() {
-  check_actual_rc_channel();
-  if (Serial.available() > 0) {
-    int s;
-    while (Serial.available() > 0) {
-      s = Serial.read();
-    }
-    Serial.print("Sim: ");
-    Serial.println(s);
-    if (s == 117) {
-      Serial.println("u");
-      myoled.menu_action(-1);
-    }
-    else if (s == 100) {
-      Serial.println("d");
-      myoled.menu_action(1);
-    }
-    else if (s == 62) {
-      Serial.println(">");
-      myoled.menu_action(0, 1);
-    }
-    else if (s == 60) {
-      Serial.println("<");
-      myoled.menu_action(0, -1);
-    }
-    else if (s == 112) {
-      Serial.println("p");
-      myoled.menu_action(0, 0, true);
-    }
-    else if (s == 91) {
-      Serial.println("[");
-      myoled.menu_action(-1, 0, true);
-    }
-    else if (s == 93) {
-      Serial.println("]");
-      myoled.menu_action(1, 0, true);
-    }
-  }
-
+//  check_actual_rc_channel();
+  transmit_pac();
+//  if (Serial.available() > 0) {
+//    int s;
+//    while (Serial.available() > 0) {
+//      s = Serial.read();
+//    }
+//    Serial.print("Sim: ");
+//    Serial.println(s);
+//    if (s == 117) {
+//      Serial.println("u");
+//      myoled.menu_action(-1);
+//    }
+//    else if (s == 100) {
+//      Serial.println("d");
+//      myoled.menu_action(1);
+//    }
+//    else if (s == 62) {
+//      Serial.println(">");
+//      myoled.menu_action(0, 1);
+//    }
+//    else if (s == 60) {
+//      Serial.println("<");
+//      myoled.menu_action(0, -1);
+//    }
+//    else if (s == 112) {
+//      Serial.println("p");
+//      myoled.menu_action(0, 0, true);
+//    }
+//    else if (s == 91) {
+//      Serial.println("[");
+//      myoled.menu_action(-1, 0, true);
+//    }
+//    else if (s == 93) {
+//      Serial.println("]");
+//      myoled.menu_action(1, 0, true);
+//    }
+//  }
   
-  if (millis() - ::timer > 500) {
-    //lcd.menu_action(-1);
-    myoled.show_frame();
-    ::timer = millis();
-  }
+//  if (millis() - ::timer > 500) {
+//    //lcd.menu_action(-1);
+//    myoled.show_frame();
+//    ::timer = millis();
+//  }
 }
