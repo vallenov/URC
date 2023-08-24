@@ -100,7 +100,6 @@ bool get_data_from_gamepad(byte *content) {
             Serial.println(zero_cnt);
           }
           if (zero_cnt >= 5) {
-            Serial.println("ret");
             return false;
           }
           content[int_cnt] = val;
@@ -134,11 +133,11 @@ void transmit_pac() {
   }
   Serial.println();
   Serial.print("str res: ");
-  for (uint8_t current = 0; current < 5; current++) {
-    Serial.print(button_data[current]);
-    Serial.print(" ");
-  }
-  Serial.println();
+//  for (uint8_t current = 0; current < 5; current++) {
+//    Serial.print(button_data[current]);
+//    Serial.print(" ");
+//  }
+//  Serial.println();
   delay(10);
   // отправка пакета в эфир
   if (radio.write(&button_data, sizeof(button_data))) {
