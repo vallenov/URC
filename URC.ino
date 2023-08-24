@@ -2,6 +2,9 @@
 #include "nRF24L01.h"
 #include "RF24.h"
 #include <SoftwareSerial.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "OLED.h"
 
@@ -10,6 +13,8 @@
 #define SIG_SPEED RF24_1MBPS
 
 #define VERSION "0.0.1"
+
+//using namespace std;
 
 /*
  Соответствие номеров кнопкам
@@ -65,16 +70,18 @@ void check_actual_rc_channel() {
   }
 }
 
-void get_data(char *content) {
+bool get_data_from_gamepad(byte *content) {
   mySerial.write(" ");
   uint8_t sz = 0;
-  //char content[28] = {};
   if (mySerial.available()) {
-    uint8_t cnt = 0;
+    uint8_t zero_cnt = 0;
+    uint8_t buff_cnt = 0;
+    uint8_t int_cnt = 0;
     bool receiving = false;
+    char buff[5] = {};
     while (mySerial.available()) {
       if (mySerial.peek() == 36) {
-        cnt = 0;
+        int_cnt = 0;
         receiving = true;
         mySerial.read();
       }
@@ -83,37 +90,65 @@ void get_data(char *content) {
           receiving = false;
           break;
         }
-        Serial.write(" ");
-        content[cnt] = mySerial.read();
-        cnt++;
+        buff[buff_cnt] = mySerial.read();
+        buff_cnt++;
+        if (mySerial.peek() == 59) {
+          mySerial.read();
+          uint8_t val = atoi(buff);
+          if (val == 0) {
+            zero_cnt++;
+            Serial.println(zero_cnt);
+          }
+          if (zero_cnt >= 5) {
+            Serial.println("ret");
+            return false;
+          }
+          content[int_cnt] = val;
+          buff_cnt = 0;
+          int_cnt++;
+          buff[5] = {};
+          continue;
+        }
       }
       else {
-        Serial.write(" ");
         mySerial.read();
       }
     }
     if (receiving) {
-      return {"-1"};
+      return false;
     }
-//    Serial.println();
-//    Serial.println(content);
+    return true;    
   }
+  return false;
 }
 
 void transmit_pac() {
-  char raw_button_data[28] = {};
-  get_data(raw_button_data);
+  bool success = false;
+  byte button_data[5] = {};
+  success = get_data_from_gamepad(button_data);
+  if (success == false) {
+    return;
+  }
+  while (mySerial.available()) {
+    mySerial.read();
+  }
   Serial.println();
-  Serial.println(raw_button_data);
+  Serial.print("str res: ");
+  for (uint8_t current = 0; current < 5; current++) {
+    Serial.print(button_data[current]);
+    Serial.print(" ");
+  }
+  Serial.println();
+  delay(10);
   // отправка пакета в эфир
-//  if (radio.write(&transmit_data, sizeof(transmit_data))) {
-//    Serial.print("Transmit: ");
-//    for (uint16_t i : transmit_data) {
-//      Serial.print(i);
-//      Serial.print(" ");
-//    }
-//    Serial.println();
-//  }
+  if (radio.write(&button_data, sizeof(button_data))) {
+    Serial.print("Transmit: ");
+    for (uint16_t i : button_data) {
+      Serial.print(i);
+      Serial.print(" ");
+    }
+    Serial.println();
+  }
 }
 
 void setup() {
