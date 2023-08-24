@@ -120,7 +120,7 @@ void loop() {
     if (Serial.available()) {
       char buf[28];
       result_char.toCharArray(buf, result_char.length()+1);
-      //Serial.println(result_char);
+//      Serial.println(result_char);
       Serial.write(buf);
 //      Serial.println();
       while (Serial.available()) {
