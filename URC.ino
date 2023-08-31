@@ -9,6 +9,7 @@
 #include "OLED.h"
 
 // Настройки для NRF24
+#define CH_NUM 0x60
 #define SIG_POWER RF24_PA_LOW
 #define SIG_SPEED RF24_1MBPS
 
@@ -45,7 +46,7 @@ myOLED myoled;
 
 RF24 radio(9, 10);
 
-SoftwareSerial mySerial(6, 7);
+SoftwareSerial mySerial(7, 8);
 
 void radioSetup() {
   radio.begin();              // активировать модуль
@@ -54,6 +55,7 @@ void radioSetup() {
   radio.enableAckPayload();   // разрешить отсылку данных в ответ на входящий сигнал
   radio.setPayloadSize(32);   // размер пакета, в байтах
   radio.openWritingPipe(address[0]);   // мы - труба 0, открываем канал для передачи данных
+  radio.setChannel(CH_NUM); // убрать на проде
   radio.setPALevel(SIG_POWER);         // уровень мощности передатчика
   radio.setDataRate(SIG_SPEED);        // скорость обмена
   // должна быть одинакова на приёмнике и передатчике!
@@ -70,11 +72,11 @@ void check_actual_rc_channel() {
   }
 }
 
-bool get_data_from_gamepad(byte *content) {
+void get_data_from_gamepad(byte *content) {
   mySerial.write(" ");
+  delay(20);
   uint8_t sz = 0;
   if (mySerial.available()) {
-    uint8_t zero_cnt = 0;
     uint8_t buff_cnt = 0;
     uint8_t int_cnt = 0;
     bool receiving = false;
@@ -94,18 +96,10 @@ bool get_data_from_gamepad(byte *content) {
         buff_cnt++;
         if (mySerial.peek() == 59) {
           mySerial.read();
-          uint8_t val = atoi(buff);
-          if (val == 0) {
-            zero_cnt++;
-            Serial.println(zero_cnt);
-          }
-          if (zero_cnt >= 5) {
-            return false;
-          }
-          content[int_cnt] = val;
+          content[int_cnt] = atoi(buff);
           buff_cnt = 0;
           int_cnt++;
-          buff[5] = {};
+          char buff[5] = {};
           continue;
         }
       }
@@ -114,31 +108,32 @@ bool get_data_from_gamepad(byte *content) {
       }
     }
     if (receiving) {
-      return false;
-    }
-    return true;    
+      return;
+    } 
   }
-  return false;
 }
 
 void transmit_pac() {
-  bool success = false;
   byte button_data[5] = {};
-  success = get_data_from_gamepad(button_data);
-  if (success == false) {
-    return;
+  get_data_from_gamepad(button_data);
+  for (uint8_t cur = 0; cur < 5; cur++) {
+    if (button_data[cur] != 0) {
+      break;
+    }
+    else if (cur == 4) {
+      return;
+    }
   }
   while (mySerial.available()) {
     mySerial.read();
   }
-  Serial.println();
-  Serial.print("str res: ");
+//  Serial.println();
+//  Serial.print("str res: ");
 //  for (uint8_t current = 0; current < 5; current++) {
 //    Serial.print(button_data[current]);
 //    Serial.print(" ");
 //  }
 //  Serial.println();
-  delay(10);
   // отправка пакета в эфир
   if (radio.write(&button_data, sizeof(button_data))) {
     Serial.print("Transmit: ");
