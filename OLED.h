@@ -1,16 +1,16 @@
 #include <OLED_I2C.h>
-#include <Arduino.h>
+  #include <Arduino.h>
 #include <string.h>
 
 extern uint8_t SmallFont[];
 extern uint8_t TinyFont[];
 
-OLED  disp(SDA, SCL, 8);
+OLED  disp(SDA, SCL);
 
 class myOLED {
   private:
     uint8_t left_blank_wide = 10;
-    int8_t current_menu_position[2] = {0, 0};
+    int8_t current_menu_position[2] = {1, 0};
     int8_t current_menu_level = 0; 
     uint8_t menu_len = 4;
     boolean backlight = true;
@@ -25,6 +25,7 @@ class myOLED {
     };
     uint8_t ping_pic = 3;
     uint8_t ethernity_pic = 4;
+    short sym_height = 8;
     
   public:
     uint8_t battery = 56; // battery level
@@ -33,7 +34,11 @@ class myOLED {
     myOLED(){}
 
   void init() {
-    disp.begin();
+    Serial.println("HELLO");
+    if(!disp.begin(SSD1306_128X32))
+      while(1) {Serial.println("ERR");};
+    Serial.println("OK");
+//    disp.rotateDisplay(true);
     disp.setBrightness(brightness);
     disp.setFont(SmallFont);
   }
@@ -60,23 +65,43 @@ class myOLED {
 
   void show_menu() {
     if (current_menu_level == 0) {
-      for (uint8_t i = 0; i < menu_len; i++) {
-        uint8_t shift = i+2;
+      for (short i = current_menu_position[current_menu_level]-1; i <= current_menu_position[current_menu_level]-1 + 2; i++) {
+        uint8_t shift = i-current_menu_position[current_menu_level]+2;
         if (i == current_menu_position[current_menu_level]) {
-          disp.print(">", LEFT, shift*8);
+          disp.print(">", LEFT, shift*sym_height);
         }
-        disp.print(menu[i], left_blank_wide, shift*8);
+        short indx;
+        if (i >= menu_len) {
+          indx = i - menu_len;
+        }
+        else if (i < 0) {
+          indx = menu_len + i;
+        }
+        else {
+          indx = i;
+        }
+        disp.print(menu[indx], left_blank_wide, shift*sym_height);
       } 
     }
     if (current_menu_level == 1) {
-      for (uint8_t i = 0; i < menu_len; i++) {
-        uint8_t shift = i+2;
-        uint8_t col = shift*8;
+      for (short i = current_menu_position[current_menu_level]-1; i <= current_menu_position[current_menu_level]-1 + 2; i++) {
+        uint8_t shift = i-current_menu_position[current_menu_level]+2;
+        uint8_t col = shift*sym_height;
         if (i == current_menu_position[current_menu_level]) {
           disp.print(">", LEFT, col);
         }
-        Serial.println(menu2[current_menu_position[current_menu_level-1]][i]);
-        disp.print(menu2[current_menu_position[current_menu_level-1]][i], left_blank_wide, col);
+        short indx;
+        if (i >= menu_len) {
+          indx = i - menu_len;
+        }
+        else if (i < 0) {
+          indx = menu_len + i;
+        }
+        else {
+          indx = i;
+        }
+        Serial.println(menu2[current_menu_position[current_menu_level-1]][indx]);
+        disp.print(menu2[current_menu_position[current_menu_level-1]][indx], left_blank_wide, col);
         if (current_menu_position[0] == 0) {
           if (i == 0) {
             disp.print(backlight ? "ON" : "OFF", RIGHT, col);
